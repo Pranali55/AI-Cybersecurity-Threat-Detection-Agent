@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Cybersecurity Threat Detection Agent</title><style>
+:root{--bg:#0b1220;--panel:#121d30;--line:#26364e;--text:#e8eef8;--muted:#9aabc2;--accent:#54c7b5}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(140deg,#0b1220,#101c2f);color:var(--text);font:15px/1.5 Arial}
+.wrap{max-width:1100px;margin:auto;padding:30px 20px}h1{font-size:clamp(25px,4vw,38px);margin-bottom:5px}.muted{color:var(--muted)}
+.panel,.metric,.alert{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:18px}
+button{background:var(--accent);color:#06221f;border:0;padding:11px 16px;border-radius:8px;font-weight:bold;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric strong{display:block;font-size:27px}.metric span{color:var(--muted)}
+.alert{margin:10px 0;background:#0d1727}.critical{border-left:4px solid #ff667a}.high{border-left:4px solid #ff8b65}.medium{border-left:4px solid #ffb45e}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#091321;padding:14px;border-radius:8px}
+@media(max-width:650px){.grid{grid-template-columns:repeat(2,1fr)}}
+</style></head><body><main class="wrap"><h1>Cybersecurity Threat Detection</h1>
+<p class="muted">Defensive security log analysis and explainable risk alerts · Local safe mode</p>
+<section class="panel"><h2>Analyse security logs</h2><p class="muted">Upload UTF-8 .log, .txt, or .csv file (maximum 5 MB). Try the included sample logs.</p>
+<input id="file" type="file" accept=".log,.txt,.csv"> <button id="run">Analyse file</button> <span id="status" class="muted"></span></section>
+<section id="results" hidden><div class="grid" id="metrics"></div><section class="panel"><h2>Detected alerts</h2><div id="alerts"></div></section>
+<section class="panel"><h2>Investigation report</h2><pre id="report"></pre></section></section>
+<section class="panel"><h3>Detection scope</h3><p class="muted">Detects repeated authentication failures and successful logins after repeated failures. It does not scan networks, exploit hosts, block IPs, or modify accounts. Alerts require human validation.</p></section></main>
+<script>
+const statusEl=document.getElementById('status');
+document.getElementById('run').onclick=async()=>{const f=document.getElementById('file').files[0];if(!f){statusEl.textContent='Choose a file first.';return;}
+statusEl.textContent='Analysing...';const form=new FormData();form.append('file',f);
+try{const r=await fetch('/api/analyze',{method:'POST',body:form});const d=await r.json();if(!r.ok)throw Error(d.detail||'Analysis failed');render(d);statusEl.textContent='Analysis complete.';}catch(e){statusEl.textContent=e.message;}};
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function render(d){document.getElementById('results').hidden=false;const s=d.summary;
+document.getElementById('metrics').innerHTML=[['Events',s.total_events],['Unique source IPs',s.unique_source_ips],['Failed logins',s.failed_logins],['Alerts',s.alerts]].map(x=>`<div class="metric"><strong>${x[1]}</strong><span>${x[0]}</span></div>`).join('');
+document.getElementById('alerts').innerHTML=d.alerts.length?d.alerts.map(a=>`<article class="alert ${a.severity}"><small>${esc(a.severity.toUpperCase())} · Risk ${a.risk_score}/100</small><h3>${esc(a.category)}</h3><p>Source: ${esc(a.source_ip)} · Failed: ${a.failed_attempts} · Successful: ${a.successful_attempts}</p><p>${esc(a.evidence)}</p><p><b>Recommended review:</b> ${esc(a.recommendation)}</p></article>`).join(''):'<p class="muted">No configured alert conditions triggered.</p>';
+document.getElementById('report').textContent=d.report;}
+</script></body></html>
